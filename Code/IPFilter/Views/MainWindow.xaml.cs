@@ -30,7 +30,7 @@
             helper = new WindowInteropHelper(this);
             
             ViewModel = new MainWindowViewModel();
-            ViewModel.ShowNotification = (title, message, icon) => notifyIcon.ShowBalloonTip(3000, title, message, icon);
+            //ViewModel.ShowNotification = (title, message, icon) => notifyIcon.ShowBalloonTip(3000, title, message, icon);
 
             Closing += OnClosing;
 
@@ -42,14 +42,14 @@
 
             notifyIcon = new NotifyIcon();
 
-            StreamResourceInfo resourceStream = Application.GetResourceStream(new Uri("pack://application:,,,/App.ico"));
-            if (resourceStream != null)
-            {
-                using (Stream iconStream = resourceStream.Stream)
-                {
-                    notifyIcon.Icon = new System.Drawing.Icon(iconStream);
-                }
-            }
+            //StreamResourceInfo resourceStream = Application.GetResourceStream(new Uri("pack://application:,,,/App.ico"));
+            //if (resourceStream != null)
+            //{
+            //    using (Stream iconStream = resourceStream.Stream)
+            //    {
+            //        notifyIcon.Icon = new System.Drawing.Icon(iconStream);
+            //    }
+            //}
             notifyIcon.Visible = true;
             notifyIcon.MouseClick += OnNotifyIconClick;
             notifyIcon.Text = ViewModel.Update.ProductAndVersion;
