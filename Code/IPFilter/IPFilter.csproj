@@ -369,9 +369,6 @@
     <EmbeddedResource Include="..\..\packages\Microsoft.AspNet.WebApi.Client.5.2.3\lib\net45\System.Net.Http.Formatting.dll">
       <Link>Assemblies\System.Net.Http.Formatting.dll</Link>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\..\packages\Microsoft.ApplicationInsights.2.0.1\lib\net45\Microsoft.ApplicationInsights.dll">
-      <Link>Assemblies\Microsoft.ApplicationInsights.dll</Link>
-    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

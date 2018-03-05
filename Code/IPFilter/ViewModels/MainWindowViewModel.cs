@@ -19,7 +19,6 @@ namespace IPFilter.ViewModels
     using System.Windows.Threading;
     using Apps;
     using ListProviders;
-    using Microsoft.ApplicationInsights;
     using Microsoft.Win32;
     using Models;
     using Native;
@@ -41,7 +40,6 @@ namespace IPFilter.ViewModels
         string statusText;
         readonly StringBuilder log = new StringBuilder(500);
         readonly Dispatcher dispatcher;
-        TelemetryClient telemetryClient;
 
         public MainWindowViewModel()
         {
@@ -291,21 +289,6 @@ namespace IPFilter.ViewModels
         
         public async Task Initialize()
         {
-            try
-            {
-                telemetryClient = new TelemetryClient();
-                telemetryClient.InstrumentationKey = "23694f6c-53c2-42e2-9427-b7e02cda9c6f";
-                telemetryClient.Context.Component.Version = Process.GetCurrentProcess().MainModule.FileVersionInfo.FileVersion;
-                telemetryClient.Context.Session.Id = Guid.NewGuid().ToString();
-                telemetryClient.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
-                telemetryClient.TrackPageView("Home");
-                telemetryClient.Flush();
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError("Couldn't initialize telemetry: " + ex);
-            }
-            
             // Check for updates
             await CheckForUpdates();
             
@@ -345,7 +328,6 @@ namespace IPFilter.ViewModels
                 catch (Exception ex)
                 {
                     Trace.TraceError("Failed to remove old ClickOnce app: " + ex);
-                    telemetryClient?.TrackException(ex);
                 }
 
                 Trace.TraceInformation("Checking for software updates...");
@@ -499,14 +481,11 @@ namespace IPFilter.ViewModels
                 {
                     Trace.TraceError("Exception when shutting down app for update: " + ex);
                     Update.ErrorMessage = "Couldn't shutdown the app to apply update.";
-                    telemetryClient?.TrackException(ex);
                 }
             }
             catch (Exception ex)
             {
                 Trace.TraceWarning("Application update check failed: " + ex);
-                telemetryClient?.TrackException(ex);
-                telemetryClient?.Flush();
             }
             finally
             {
@@ -524,7 +503,6 @@ namespace IPFilter.ViewModels
 
         public void Shutdown()
         {
-            telemetryClient?.Flush();
         }
     }
 
