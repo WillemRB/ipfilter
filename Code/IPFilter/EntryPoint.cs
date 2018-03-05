@@ -98,12 +98,12 @@
             {
                 if (filter.Exception != null) throw filter.Exception;
 
-                foreach (var application in apps)
-                {
-                    Trace.TraceInformation("Updating app {0} {1}", application.Description, application.Version);
+                //foreach (var application in apps)
+                //{
+                //    Trace.TraceInformation("Updating app {0} {1}", application.Description, application.Version);
 
-                    await application.Application.UpdateFilterAsync(filter, cancellationSource.Token, progress);
-                }
+                //    await application.Application.UpdateFilterAsync(filter, cancellationSource.Token, progress);
+                //}
             }
 
             Trace.TraceInformation("Done.");

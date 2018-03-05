@@ -527,7 +527,7 @@ namespace IPFilter.ViewModels
 
                         return result;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         throw;
                     }
