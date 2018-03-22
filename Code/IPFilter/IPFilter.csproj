@@ -123,14 +123,6 @@
     <Compile Include="Native\SafeLocalMemHandle.cs" />
     <Compile Include="Native\SecurityAttributes.cs" />
     <Compile Include="Native\StartupInfo.cs" />
-    <Compile Include="Services\Deployment\ClickOnceRegistry.cs" />
-    <Compile Include="Services\Deployment\IUninstallStep.cs" />
-    <Compile Include="Services\Deployment\RemoveFiles.cs" />
-    <Compile Include="Services\Deployment\RemoveRegistryKeys.cs" />
-    <Compile Include="Services\Deployment\RemoveStartMenuEntry.cs" />
-    <Compile Include="Services\Deployment\RemoveUninstallEntry.cs" />
-    <Compile Include="Services\Deployment\Uninstaller.cs" />
-    <Compile Include="Services\Deployment\UninstallInfo.cs" />
     <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="Services\DeploymentHelper.cs" />
     <Compile Include="ViewModels\MessageBoxHelper.cs" />
@@ -349,26 +341,6 @@
       <IncludeHash>True</IncludeHash>
       <FileType>Satellite</FileType>
     </PublishFile>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\System.Net.Http.dll">
-      <Link>Assemblies\System.Net.Http.dll</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\System.Net.Http.WebRequest.dll">
-      <Link>Assemblies\System.Net.Http.WebRequest.dll</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\packages\TaskScheduler.2.3.4\lib\net40\Microsoft.Win32.TaskScheduler.dll">
-      <Link>Assemblies\Microsoft.Win32.TaskScheduler.dll</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\packages\Extended.Wpf.Toolkit.2.5\lib\net40\Xceed.Wpf.Toolkit.dll">
-      <Link>Assemblies\Xceed.Wpf.Toolkit.dll</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll">
-      <Link>Assemblies\Newtonsoft.Json.dll</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\packages\Microsoft.AspNet.WebApi.Client.5.2.3\lib\net45\System.Net.Http.Formatting.dll">
-      <Link>Assemblies\System.Net.Http.Formatting.dll</Link>
-    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

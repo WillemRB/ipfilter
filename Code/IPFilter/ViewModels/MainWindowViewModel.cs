@@ -23,7 +23,6 @@ namespace IPFilter.ViewModels
     using Models;
     using Native;
     using Services;
-    using Services.Deployment;
     using UI.Annotations;
     
     public class MainWindowViewModel : INotifyPropertyChanged
@@ -288,10 +287,7 @@ namespace IPFilter.ViewModels
         public bool ProgressIsIndeterminate { get; set; }
         
         public async Task Initialize()
-        {
-            // Check for updates
-            await CheckForUpdates();
-            
+        {            
             SelectedMirrorProvider = MirrorProviders.First();
             
             apps = (await applicationEnumerator.GetInstalledApplications()).ToList();
@@ -309,191 +305,6 @@ namespace IPFilter.ViewModels
 
         }
         
-        async Task CheckForUpdates()
-        {
-            try
-            {
-                // Remove any old ClickOnce installs
-                try
-                {
-                    var uninstallInfo = UninstallInfo.Find("IPFilter Updater");
-                    if (uninstallInfo != null)
-                    {
-                        Trace.TraceWarning("Old ClickOnce app installed! Trying to remove...");
-                            var uninstaller = new Uninstaller();
-                            uninstaller.Uninstall(uninstallInfo);
-                            Trace.TraceInformation("Successfully removed ClickOnce app");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Trace.TraceError("Failed to remove old ClickOnce app: " + ex);
-                }
-
-                Trace.TraceInformation("Checking for software updates...");
-                progress.Report(new ProgressModel(UpdateState.Downloading, "Checking for software updates...", -1));
-
-                var updater = new Updater();
-
-                var result = await updater.CheckForUpdateAsync();
-
-                var currentVersion = new Version(Process.GetCurrentProcess().MainModule.FileVersionInfo.FileVersion);
-
-                var latestVersion = new Version(result.Version);
-                
-                Update.IsUpdateAvailable = latestVersion > currentVersion;
-
-                if (Update.IsUpdateAvailable)
-                {
-                    Update.AvailableVersion = latestVersion;
-                    Update.IsUpdateRequired = true;
-                    Update.MinimumRequiredVersion = latestVersion;
-                    Update.UpdateSizeBytes = 2000000;
-                }
-
-                Trace.TraceInformation("Current version: {0}", Update.CurrentVersion);
-                Trace.TraceInformation("Available version: {0}", Update.AvailableVersion?.ToString() ?? "<no updates>");
-
-                if (!Update.IsUpdateAvailable ) return;
-                
-                if (MessageBoxHelper.Show(dispatcher, "Update Available", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes,
-                    "An update to version {0} is available. Would you like to update now?", Update.AvailableVersion) != MessageBoxResult.Yes)
-                {
-                    return;
-                }
-                
-                Trace.TraceInformation("Starting application update...");
-
-                // If we're not "installed", then don't check for updates. This is so the
-                // executable can be stand-alone. Stand-alone self-update to come later.
-                using (var key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\IPFilter"))
-                {
-                    var installPath = (string) key?.GetValue("InstallPath");
-                    if (installPath == null)
-                    {
-                        using (var process = new Process())
-                        {
-                            process.StartInfo = new ProcessStartInfo("https://davidmoore.github.io/ipfilter/")
-                            {
-                                UseShellExecute = true
-                            };
-
-                            process.Start();
-                            return;
-                        }
-                    }
-                }
-
-                var msiPath = Path.Combine(Path.GetTempPath(), "IPFilter.msi");
-
-                // Download the installer
-                using (var handler = new WebRequestHandler())
-                {
-                    handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-
-                    var uri = new Uri($"{result.Uri}?{DateTime.Now.ToString("yyyyMMddHHmmss")}");
-
-                    using (var httpClient = new HttpClient(handler))
-                    using (var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken.Token))
-                    {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            progress.Report(new ProgressModel(UpdateState.Ready, "Update cancelled. Ready.", 100));
-                            Update.IsUpdating = false;
-                            return;
-                        }
-
-                        var length = response.Content.Headers.ContentLength;
-                        double lengthInMb = !length.HasValue ? -1 : (double)length.Value / 1024 / 1024;
-                        double bytesDownloaded = 0;
-
-                        using(var stream = await response.Content.ReadAsStreamAsync())
-                        using(var msi = File.Open( msiPath, FileMode.Create, FileAccess.Write, FileShare.Read))
-                        {
-                            var buffer = new byte[65535 * 4];
-
-                            int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken.Token);
-                            while (bytesRead != 0)
-                            {
-                                await msi.WriteAsync(buffer, 0, bytesRead, cancellationToken.Token);
-                                bytesDownloaded += bytesRead;
-
-                                if (length.HasValue)
-                                {
-                                    double downloadedMegs = bytesDownloaded / 1024 / 1024;
-                                    var percent = (int)Math.Floor((bytesDownloaded / length.Value) * 100);
-
-                                    var status = string.Format(CultureInfo.CurrentUICulture, "Downloaded {0:F2} MB of {1:F2} MB", downloadedMegs, lengthInMb);
-
-                                    Update.IsUpdating = true;
-                                    Update.DownloadPercentage = percent;
-                                    progress.Report(new ProgressModel(UpdateState.Downloading, status, percent));
-                                }
-
-                                if (cancellationToken.IsCancellationRequested)
-                                {
-                                    progress.Report(new ProgressModel(UpdateState.Ready, "Update cancelled. Ready.", 100));
-                                    Update.IsUpdating = false;
-                                    return;
-                                }
-
-                                bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken.Token);
-                            }
-                        }
-                    }
-                }
-
-                progress.Report(new ProgressModel(UpdateState.Ready, "Launching update...", 100));
-                Update.IsUpdating = false;
-                
-                // Now run the installer
-                var sb = new StringBuilder("msiexec.exe ");
-
-                // Enable logging for the installer
-                sb.AppendFormat(" /l*v \"{0}\"", Path.Combine(Path.GetTempPath(), "IPFilter.log"));
-                
-                sb.AppendFormat(" /i \"{0}\"", msiPath);
-
-                //sb.Append(" /passive");
-
-                ProcessInformation processInformation = new ProcessInformation();
-                StartupInfo startupInfo = new StartupInfo();
-                SecurityAttributes processSecurity = new SecurityAttributes();
-                SecurityAttributes threadSecurity = new SecurityAttributes();
-                processSecurity.nLength = Marshal.SizeOf(processSecurity);
-                threadSecurity.nLength = Marshal.SizeOf(threadSecurity);
-
-                const int NormalPriorityClass = 0x0020;
-
-                if (!ProcessManager.CreateProcess(null, sb, processSecurity,
-                    threadSecurity, false, NormalPriorityClass,
-                    IntPtr.Zero, null, startupInfo, processInformation))
-                {
-                    throw Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error());
-                }
-                
-                try
-                {
-                    //dispatcher.Invoke(DispatcherPriority.Normal, new Action(Application.Current.Shutdown));
-                    Application.Current.Shutdown();
-                }
-                catch (Exception ex)
-                {
-                    Trace.TraceError("Exception when shutting down app for update: " + ex);
-                    Update.ErrorMessage = "Couldn't shutdown the app to apply update.";
-                }
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceWarning("Application update check failed: " + ex);
-            }
-            finally
-            {
-                progress.Report(new ProgressModel(UpdateState.Ready, "Ready", 0));
-            }
-        }
-
-
         [NotifyPropertyChangedInvocator]
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
@@ -504,44 +315,5 @@ namespace IPFilter.ViewModels
         public void Shutdown()
         {
         }
-    }
-
-    class Updater
-    {
-
-        public async Task<UpdateInfo> CheckForUpdateAsync()
-        {
-            const string baseUri = "https://davidmoore.github.io/ipfilter/install/";
-
-            using (var client = new HttpClient())
-            {
-                using (var content = await client.GetAsync(baseUri + "install.json"))
-                {
-                    try
-                    {
-                        content.EnsureSuccessStatusCode();
-
-                        var result = await content.Content.ReadAsAsync<UpdateInfo>();
-
-                        result.Uri = baseUri + result.Uri;
-
-                        return result;
-                    }
-                    catch (Exception)
-                    {
-                        throw;
-                    }
-
-                }
-            }
-        }
-
-    }
-
-    public class UpdateInfo
-    {
-        public string Version { get; set; }
-
-        public string Uri { get; set; }
     }
 }
